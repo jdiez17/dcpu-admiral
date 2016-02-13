@@ -1,0 +1,548 @@
+;----------------------------------------------------------------
+; GLOBAL INTERPRETER VARIABLES
+;----------------------------------------------------------------
+:global_scope   dat 0
+:current_scope  dat 0
+
+:builtin        dat 0
+:history        dat 0
+
+:recovery_fp    dat 0
+:recovery_sp    dat 0
+
+;----------------------------------------------------------------
+; GLOBAL DISPLAY VARIABLES
+;----------------------------------------------------------------
+:current_screen dat screen_first
+
+:screen_first    dat MEM_SCREEN_START, MEM_SCREEN_START + 0x180, MEM_SCREEN_START
+                dat MEM_SCREEN_START + 0x180, MEM_SCREEN_START + 0x300, MEM_SCREEN_START + 0x180
+:screen_last    dat MEM_SCREEN_START + 0x300, MEM_SCREEN_START + 0x480, MEM_SCREEN_START + 0x300
+
+
+;----------------------------------------------------------------
+; GLOBAL FD VARIABLES
+;----------------------------------------------------------------
+:floppy__file__position                    dat 0
+:floppy__buffer__position                dat 0
+
+:floppy__free
+:floppy__free__head                        DAT 0
+:floppy__free__tail                        DAT 0
+
+:floppy__dir
+:floppy__dir__head                        DAT 0
+:floppy__dir__tail                        DAT 0
+
+;----------------------------------------------------------------
+; RANDOM NUMBER GENERATORS
+;----------------------------------------------------------------
+:rnd_lfsr_seed     dat 0xbe8c,0x8000 ; 1st is anything but zero. 2nd should be 8000 or 0000
+:rnd_lfsr_poly     dat 0xb400 
+
+; To seed the generator, simply overwrite the data in randseed.
+:rnd_lcg_seed    dat 0x5678, 0x1234
+
+;----------------------------------------------------------------
+; GLOBAL HW VARIABLES
+;----------------------------------------------------------------
+:keyboard           DAT 0
+:monitor            DAT 0 
+:clock              DAT 0
+:floppy             DAT 0
+     
+;----------------------------------------------------------------
+; GLOBAL HEAP MANAGEMENT VARIABLES
+;----------------------------------------------------------------
+:heap_counter         DAT HEAP_GC_TRIGGER
+:heap_free_start    DAT MEM_HEAP_START
+
+:heap_handle_start  DAT MEM_HEAP_END
+:heap_handle_head   DAT 0
+:heap_handle_tail   DAT heap_handle_head - HANDLE_NEXT
+:heap_handle_free   DAT 0
+
+;----------------------------------------------------------------
+; GLOBAL LEXER VARIABLES
+;----------------------------------------------------------------
+:lexer_string       dat 0
+:lexer_target_indent    dat 0
+:lexer_current_indent   dat 0
+:lexer_token        dat 0
+:lexer_start        dat 0
+:lexer_end      dat 0
+
+;----------------------------------------------------------------
+; GLOBAL EDITOR VARIABLES
+;----------------------------------------------------------------
+:buf_start  dat 0
+:buf_end    dat 0
+
+:gap_start  dat 0
+:gap_end    dat 0
+
+:win_start  dat 0
+:win_shift  dat 0
+
+:cur_pos    dat 0
+:cur_line   dat 0
+
+:cur_x      dat 0
+:cur_y      dat 0
+
+:prev_char  dat 0
+
+;----------------------------------------------------------------
+; INTERPRETER LINE EDITOR
+;----------------------------------------------------------------
+;----------------------------------------------------------------
+; current history line 0-4
+:line_editor__buf_index        dat            0
+:line_editor__start_addr    dat            0
+:line_editor__current_addr    dat            0
+:line_editor__end_addr        dat            0
+:line_editor__last_char        dat            0
+
+;----------------------------------------------------------------
+; DICT HELPERS
+;----------------------------------------------------------------
+:dict__get__finish
+    dat dict__get__match
+    dat dict__get__no_match
+
+:dict__set__finish
+    dat dict__set__match
+    dat dict__set__no_match
+
+;----------------------------------------------------------------
+; CRYPT LIB
+;----------------------------------------------------------------
+:crypt__State
+dat 0x0, 0x0, 0x0, 0x0
+dat 0x0, 0x0, 0x0, 0x0
+
+:crypt__SBoxE
+dat 0x7ce9, 0x215f, 0xb6d0, 0x48a3
+dat 0x4a16, 0x8f7c, 0x30ed, 0x59b2
+dat 0x2fc1, 0x56ad, 0xe834, 0x0b97
+dat 0xf458, 0x9721, 0xa30e, 0x6cdb
+
+:crypt__SBoxD
+dat 0xb54f, 0xc690, 0xd3e8, 0x1a27
+dat 0x92f8, 0x0c36, 0x4d1e, 0x7ba5
+dat 0xc30a, 0xb45f, 0x9e6d, 0x2781
+dat 0xa769, 0x12c5, 0x348f, 0xdeb0
+;----------------------------------------------------------------
+; CONSTANT DATA VALUES
+;----------------------------------------------------------------
+:NONE       dat 0, TYPE_NONE
+:VOID       dat 0, TYPE_VOID
+
+:INT_N1     dat INT_N1 + 2, TYPE_INT, 0x0001, 0xFFFF
+:INT_TABLE
+:INT_0      dat INT_0 + 2, TYPE_INT, 0x0001, 0x0000
+:INT_1      dat INT_1 + 2, TYPE_INT, 0x0001, 0x0001
+:INT_2      dat INT_2 + 2, TYPE_INT, 0x0001, 0x0002
+:INT_3      dat INT_3 + 2, TYPE_INT, 0x0001, 0x0003
+:INT_4      dat INT_4 + 2, TYPE_INT, 0x0001, 0x0004
+:INT_5      dat INT_5 + 2, TYPE_INT, 0x0001, 0x0005
+:INT_6      dat INT_6 + 2, TYPE_INT, 0x0001, 0x0006
+:INT_7      dat INT_7 + 2, TYPE_INT, 0x0001, 0x0007
+:INT_8      dat INT_8 + 2, TYPE_INT, 0x0001, 0x0008
+:INT_9      dat INT_9 + 2, TYPE_INT, 0x0001, 0x0009
+:INT_10     dat INT_10 + 2, TYPE_INT, 0x0001, 0x000a
+:INT_11     dat INT_11 + 2, TYPE_INT, 0x0001, 0x000b
+:INT_12     dat INT_12 + 2, TYPE_INT, 0x0001, 0x000c 
+:INT_13     dat INT_13 + 2, TYPE_INT, 0x0001, 0x000d 
+:INT_14     dat INT_14 + 2, TYPE_INT, 0x0001, 0x000e 
+:INT_15     dat INT_15 + 2, TYPE_INT, 0x0001, 0x000f 
+:INT_16     dat INT_16 + 2, TYPE_INT, 0x0001, 0x0010
+
+:BOOL_FALSE  dat INT_0 + 2, TYPE_BOOL
+:BOOL_TRUE   dat INT_1 + 2, TYPE_BOOL
+
+:FLOAT_NAN        DAT 0
+:FLOAT_PINF        DAT 0
+:FLOAT_NINF        DAT 0
+:FLOAT_PZERO    DAT 0
+:FLOAT_NZERO    DAT 0
+
+:FLOAT_0        DAT 0
+:FLOAT_1        DAT 0
+:FLOAT_2        DAT 0
+:FLOAT_3        DAT 0
+:FLOAT_4        DAT 0
+:FLOAT_5        DAT 0
+:FLOAT_6        DAT 0
+:FLOAT_7        DAT 0
+:FLOAT_8        DAT 0
+:FLOAT_9        DAT 0
+:FLOAT_10        DAT 0
+
+:STR_PINF            DAT STR_PINF+2, TYPE_STR, 3, "inf"
+:STR_NINF            DAT STR_NINF+2, TYPE_STR, 4, "-inf"
+:STR_PZERO            DAT STR_PZERO+2, TYPE_STR, 3, "0.0"
+:STR_NZERO            DAT STR_NZERO+2, TYPE_STR, 4, "-0.0"
+:STR_NAN            DAT STR_NAN+2, TYPE_STR, 3, "nan"
+
+:STR_STARTUP    DAT STR_STARTUP + 2, TYPE_STR, 32, " ** DCPU ADMIRAL INTERPRETER ** "
+:STR_STARTUP2    DAT STR_STARTUP2 + 2, TYPE_STR, 16, "64K RAM SYSTEM  "
+:STR_STARTUP3    DAT STR_STARTUP3 + 2, TYPE_STR, 11, " WORDS FREE"
+:STR_PROMPT     DAT STR_PROMPT + 2, TYPE_STR, 1, ">"
+:STR_ERROR      DAT STR_ERROR + 2, TYPE_STR, 6, "ERROR:"
+:STR_AUTOEXEC    DAT STR_AUTOEXEC + 2, TYPE_STR, 8, "MAIN.BIN"
+:STR_MAIN        DAT STR_MAIN + 2, TYPE_NAME, 4, "main"
+
+:STR_UNDERSCORE DAT STR_UNDERSCORE + 2, TYPE_NAME, 1, "_"
+:STR_EX         DAT STR_EX + 2, TYPE_NAME, 2, "ex"
+:STR_ME         DAT STR_ME + 2, TYPE_NAME, 2, "me"
+:STR_ARGV        DAT STR_ARGV + 2, TYPE_NAME, 4, "argv"
+
+:STR_NONE       DAT STR_NONE + 2, TYPE_STR, 4, "none"
+:STR_TRUE       DAT STR_TRUE + 2, TYPE_STR, 4, "true"
+:STR_FALSE      DAT STR_FALSE + 2, TYPE_STR, 5, "false"
+:STR_EMPTY      DAT STR_EMPTY + 2, TYPE_STR, 0
+
+:HEX            DAT "0123456789abcdef"
+
+;----------------------------------------------------------------
+; TOKENS
+;----------------------------------------------------------------
+; controls
+:token_eof          dat std_eof, recover, recover, 0x0000
+:token_newline      dat std_newline, recover, recover, 0x0000
+:token_indent       dat std_indent, recover, recover, 0x0000
+:token_dedent       dat std_dedent, recover, recover, 0x0000
+
+; atoms
+:token_int          dat std_expression, nud_int, recover, 0x0000
+:token_hex          dat std_expression, nud_hex, recover, 0x0000
+:token_float        dat std_expression, nud_float, recover, 0x0000
+:token_name         dat std_expression, nud_name, recover, 0x0000
+:token_str          dat std_expression, nud_str, recover, 0x0000
+:token_none         dat std_expression, nud_none, recover, 0x0000
+:token_true         dat std_expression, nud_true, recover, 0x0000
+:token_false        dat std_expression, nud_false, recover, 0x0000
+
+; nud operators
+:token_tilde        dat std_expression, nud_tilde, recover, 0x0000
+
+; statements
+:token_if           dat std_if, recover, recover, 0x0000
+:token_cls          dat std_cls, recover, recover, 0x0000
+:token_del          dat std_del, recover, recover, 0x0000
+:token_for          dat std_for, recover, recover, 0x0000
+:token_run          dat std_run, recover, recover, 0x0000
+:token_elif         dat recover, recover, recover, 0x0000
+:token_else         dat recover, recover, recover, 0x0000
+:token_pass         dat std_pass, recover, recover, 0x0000
+:token_print            dat std_print, recover, recover, 0x0000
+:token_while            dat std_while, recover, recover, 0x0000
+:token_break            dat std_break, recover, recover, 0x0000
+:token_reset            dat std_reset, recover, recover, 0x0000
+:token_return           dat std_return, recover, recover, 0x0000
+:token_continue         dat std_continue, recover, recover, 0x0000
+
+; assignments
+:token_assign           dat recover, recover, led_assign, 0x0010
+:token_augass_plus      dat recover, recover, led_augass_plus, 0x0010
+:token_augass_minus     dat recover, recover, led_augass_minus, 0x0010
+:token_augass_star      dat recover, recover, led_augass_star, 0x0010
+:token_augass_slash     dat recover, recover, led_augass_slash, 0x0010
+:token_augass_percent   dat recover, recover, led_augass_percent, 0x0010
+:token_augass_or        dat recover, recover, led_augass_or, 0x0010
+:token_augass_xor       dat recover, recover, led_augass_xor, 0x0010
+:token_augass_and       dat recover, recover, led_augass_and, 0x0010
+:token_augass_lshift    dat recover, recover, led_augass_lshift, 0x0010
+:token_augass_rshift    dat recover, recover, led_augass_rshift, 0x0010
+
+; tuple constructor
+:token_comma            dat recover, recover, led_comma, 0x0020
+
+; tuple constructor
+;:token_colon           dat recover, recover, led_colon, 0x0030
+:token_colon            dat recover, recover, recover, 0x0000
+
+; logical operators
+:token_or           dat recover, recover, led_or, 0x0040
+:token_and          dat recover, recover, led_and, 0x0050
+:token_in           dat recover, recover, led_in, 0x0060
+:token_not          dat std_expression, nud_not, led_not, 0x0060
+:token_is           dat recover, recover, led_is, 0x0070
+
+; equality operators
+:token_equal            dat recover, recover, led_equal, 0x0080
+:token_less         dat recover, recover, led_less, 0x0080
+:token_less_or_equal        dat recover, recover, led_less_or_equal, 0x0080
+:token_greater          dat recover, recover, led_greater, 0x0080
+:token_greater_or_equal     dat recover, recover, led_greater_or_equal, 0x0080
+:token_not_equal        dat recover, recover, led_not_equal, 0x0080
+
+; bitwise operators
+:token_bitwise_or   dat recover, recover, led_bitwise_or, 0x0090
+:token_bitwise_xor  dat recover, recover, led_bitwise_xor, 0x0100
+:token_bitwise_and  dat recover, recover, led_bitwise_and, 0x0110
+
+; shifts
+:token_lshift       dat recover, recover, led_lshift, 0x0120
+:token_rshift       dat recover, recover, led_rshift, 0x0120
+
+; arithmetic operators
+:token_plus         dat std_expression, nud_plus, led_plus, 0x0130
+:token_minus        dat std_expression, nud_minus, led_minus, 0x0130
+
+:token_star         dat recover, recover, led_star, 0x0140
+:token_slash            dat recover, recover, led_slash, 0x0140
+:token_percent          dat recover, recover, led_percent, 0x0140
+:token_power            dat recover, recover, led_power, 0x0170
+
+; blaa blaa
+:token_lbrack           dat std_expression, nud_lbrack, led_lbrack, 0x0180
+:token_rbrack           dat recover, recover, recover, 0x0000
+
+:token_lparen           dat std_expression, nud_lparen, led_lparen, 0x0200
+:token_rparen           dat recover, recover, recover, 0x0000
+
+:token_lcurly           dat std_expression, nud_lcurly, recover, 0x0000
+:token_rcurly           dat recover, recover, recover, 0x0000
+
+:token_reference        dat recover, recover, led_reference, 0x0210
+
+;----------------------------------------------------------------
+; BUILT IN FUNCTIONS
+; length+1, function_name, function_impl_ptr
+; last line is the default if nothing matches
+;----------------------------------------------------------------
+:built_in_functions
+    dat 3, "id", built_in_id
+    dat 3, "rm", built_in_rm
+    dat 4, "dir", built_in_dir
+    dat 4, "hex", built_in_hex
+    dat 4, "hwi", built_in_hwi
+    dat 4, "hwn", built_in_hwn
+    dat 4, "hwq", built_in_hwq
+    dat 4, "mem", built_in_mem
+    dat 4, "rnd", built_in_rnd
+    dat 4, "int", built_in_int
+    dat 4, "str", built_in_str
+    dat 4, "len", built_in_len
+    dat 4, "abs", built_in_abs
+    dat 4, "ord", built_in_ord
+    dat 4, "chr", built_in_chr
+    dat 4, "cmp", built_in_cmp
+    dat 4, "key", built_in_key
+    dat 5, "bool", built_in_bool
+    dat 5, "call", built_in_call
+    dat 5, "edit", built_in_edit
+    dat 5, "exit", built_in_exit
+    dat 5, "getc", built_in_getchar
+    dat 5, "load", built_in_load
+    dat 5, "peek", built_in_peek
+    dat 5, "poke", built_in_poke
+    dat 5, "repr", built_in_repr
+    dat 5, "save", built_in_save
+    dat 5, "sort", built_in_sort
+    dat 5, "type", built_in_type
+    dat 5, "wget", built_in_win_get
+    dat 5, "wset", built_in_win_set
+    dat 6, "range", built_in_range
+    dat 6, "float", built_in_float
+    dat 6, "input", built_in_input
+    dat 7, "cursor", built_in_cursor
+    dat 7, "format", built_in_format
+    dat 7, "locals", built_in_locals
+    dat 7, "scroll", built_in_scroll
+    dat 8, "globals", built_in_globals
+    dat 1, led_lparen_user_defined
+
+:built_in__list_methods
+    dat 7, "append", built_in__list_append
+    dat 7, "insert", built_in__list_insert
+    dat 1, led_lparen_user_defined
+
+:built_in__dict_methods
+    dat 7, "create", built_in__dict_create
+    dat 1, led_lparen_user_defined
+
+:built_in__str_methods
+    dat 8, "decrypt", built_in__str_decrypt
+    dat 8, "encrypt", built_in__str_encrypt
+    dat 6, "lower", built_in__str_lower
+    dat 6, "upper", built_in__str_upper
+    dat 5, "find", built_in__str_find
+    dat 8, "replace", built_in__str_replace
+    dat 6, "split", built_in__str_split
+    dat 9, "endswith", built_in__str_endswith
+    dat 11, "startswith", built_in__str_startswith
+    dat 8, "isalpha", built_in__str_isalpha
+    dat 8, "isdigit", built_in__str_isdigit
+    dat 1, led_lparen_user_defined
+
+;----------------------------------------------------------------
+; RESERVED WORDS
+; length+1, reserved word, token
+; last line is the default if nothing matches
+;----------------------------------------------------------------
+:built_in_stmts
+    dat 3, "if", token_if
+    dat 3, "or", token_or
+    dat 3, "is", token_is
+    dat 3, "in", token_in
+    dat 4, "cls", token_cls
+    dat 4, "and", token_and
+    dat 4, "not", token_not
+    dat 4, "del", token_del
+    dat 4, "for", token_for
+    dat 4, "inf", token_float
+    dat 4, "nan", token_float
+    dat 4, "run", token_run
+    dat 5, "true", token_true
+    dat 5, "none", token_none
+    dat 5, "elif", token_elif
+    dat 5, "else", token_else
+    dat 5, "pass", token_pass
+    dat 6, "false", token_false
+    dat 6, "print", token_print
+    dat 6, "while", token_while
+    dat 6, "reset", token_reset
+    dat 6, "break", token_break
+    dat 7, "return", token_return
+    dat 9, "continue", token_continue
+    dat 1, token_name
+
+;----------------------------------------------------------------
+; LEXER CHARACTER TABLE
+;----------------------------------------------------------------
+:lexer_table
+    DAT lexer_char_eof           ;  0 NUL (Null char.)
+    DAT recover                  ;  1 SOH (Start of Header)
+    DAT recover                  ;  2 STX (Start of Text)
+    DAT recover                  ;  3 ETX (End of Text)
+    DAT recover                  ;  4 EOT (End of Transmission)
+    DAT recover                  ;  5 ENQ (Enquiry)
+    DAT recover                  ;  6 ACK (Acknowledgment)
+    DAT recover                  ;  7 BEL (Bell)
+    DAT recover                  ;  8 BS (Backspace)
+    DAT recover                  ;  9 HT (Horizontal Tab)
+    DAT lexer_char_newline       ; 10 LF (Line Feed)
+    DAT recover                  ; 11 VT (Vertical Tab)
+    DAT recover                  ; 12 FF (Form Feed)
+    DAT recover                  ; 13 CR (Carriage Return)
+    DAT recover                  ; 14 SO (Shift Out)
+    DAT recover                  ; 15 SI (Shift In)
+    DAT recover                  ; 16 DLE (Data Link Escape)
+    DAT lexer_char_newline       ; 17 DC1 (XON)(Device Control 1)
+    DAT recover                  ; 18 DC2 (Device Control 2)
+    DAT recover                  ; 19 DC3 (XOFF)(Device Control 3)
+    DAT recover                  ; 20 DC4 (Device Control 4)
+    DAT recover                  ; 21 NAK (Negative Acknowledgement)
+    DAT recover                  ; 22 SYN (Synchronous Idle)
+    DAT recover                  ; 23 ETB (End of Trans. Block)
+    DAT recover                  ; 24 CAN (Cancel)
+    DAT recover                  ; 25 EM (End of Medium)
+    DAT recover                  ; 26 SUB (Substitute)
+    DAT recover                  ; 27 ESC (Escape)
+    DAT recover                  ; 28 FS (File Separator)
+    DAT recover                  ; 29 GS (Group Separator)
+    DAT recover                  ; 30 RS (Request to Send)(Record Separator)
+    DAT recover                  ; 31 US (Unit Separator)
+    DAT lexer_char_whitespace    ; 32 SP (Space)
+    DAT lexer_char_exclamation   ; 33 ! (exclamation mark)
+    DAT lexer_char_quotationmark ; 34 " (double quote)
+    DAT lexer_char_comment       ; 35 # (number sign)
+    DAT lexer_char_letter        ; 36 $ (dollar sign)
+    DAT lexer_char_percent       ; 37 % (percent)
+    DAT lexer_char_ambersand     ; 38 & (ampersand)
+    DAT lexer_char_quotationmark ; 39 ' (single quote)
+    DAT lexer_char_lparen        ; 40 ( (left opening parenthesis)
+    DAT lexer_char_rparen        ; 41 ) (right closing parenthesis)
+    DAT lexer_char_star          ; 42 * (asterisk)
+    DAT lexer_char_plus          ; 43 + (plus)
+    DAT lexer_char_comma         ; 44 , (comma)
+    DAT lexer_char_minus         ; 45 - (minus or dash)
+    DAT lexer_char_dot           ; 46 . (dot)
+    DAT lexer_char_slash         ; 47 / (forward slash)
+    DAT lexer_char_digit         ; 48 0 
+    DAT lexer_char_digit         ; 49 1 
+    DAT lexer_char_digit         ; 50 2 
+    DAT lexer_char_digit         ; 51 3 
+    DAT lexer_char_digit         ; 52 4 
+    DAT lexer_char_digit         ; 53 5 
+    DAT lexer_char_digit         ; 54 6 
+    DAT lexer_char_digit         ; 55 7 
+    DAT lexer_char_digit         ; 56 8 
+    DAT lexer_char_digit         ; 57 9 
+    DAT lexer_char_colon         ; 58 : (colon)
+    DAT recover                  ; 59 ; (semi-colon)
+    DAT lexer_char_less          ; 60 < (less than sign)
+    DAT lexer_char_equal         ; 61 = (equal sign)
+    DAT lexer_char_greater       ; 62 > (greater than sign)
+    DAT recover                  ; 63 ? (question mark)
+    DAT recover                  ; 64 @ (AT symbol)
+    DAT lexer_char_letter        ; 65 A 
+    DAT lexer_char_letter        ; 66 B 
+    DAT lexer_char_letter        ; 67 C 
+    DAT lexer_char_letter        ; 68 D 
+    DAT lexer_char_letter        ; 69 E 
+    DAT lexer_char_letter        ; 70 F 
+    DAT lexer_char_letter        ; 71 G 
+    DAT lexer_char_letter        ; 72 H 
+    DAT lexer_char_letter        ; 73 I 
+    DAT lexer_char_letter        ; 74 J 
+    DAT lexer_char_letter        ; 75 K 
+    DAT lexer_char_letter        ; 76 L 
+    DAT lexer_char_letter        ; 77 M 
+    DAT lexer_char_letter        ; 78 N 
+    DAT lexer_char_letter        ; 79 O 
+    DAT lexer_char_letter        ; 80 P 
+    DAT lexer_char_letter        ; 81 Q 
+    DAT lexer_char_letter        ; 82 R 
+    DAT lexer_char_letter        ; 83 S 
+    DAT lexer_char_letter        ; 84 T 
+    DAT lexer_char_letter        ; 85 U 
+    DAT lexer_char_letter        ; 86 V 
+    DAT lexer_char_letter        ; 87 W 
+    DAT lexer_char_letter        ; 88 X 
+    DAT lexer_char_letter        ; 89 Y 
+    DAT lexer_char_letter        ; 90 Z 
+    DAT lexer_char_lbrack        ; 91 [ (left opening bracket)
+    DAT recover                  ; 92 \ (back slash)
+    DAT lexer_char_rbrack        ; 93 ] (right closing bracket)
+    DAT lexer_char_caret         ; 94 ^ (caret cirumflex)
+    DAT lexer_char_letter        ; 95 _ (underscore)
+    DAT recover                  ; 96 ` 
+    DAT lexer_char_letter        ; 97 a 
+    DAT lexer_char_letter        ; 98 b 
+    DAT lexer_char_letter        ; 99 c 
+    DAT lexer_char_letter        ; 100 d 
+    DAT lexer_char_letter        ; 101 e 
+    DAT lexer_char_letter        ; 102 f 
+    DAT lexer_char_letter        ; 103 g 
+    DAT lexer_char_letter        ; 104 h 
+    DAT lexer_char_letter        ; 105 i 
+    DAT lexer_char_letter        ; 106 j 
+    DAT lexer_char_letter        ; 107 k 
+    DAT lexer_char_letter        ; 108 l 
+    DAT lexer_char_letter        ; 109 m 
+    DAT lexer_char_letter        ; 110 n 
+    DAT lexer_char_letter        ; 111 o 
+    DAT lexer_char_letter        ; 112 p 
+    DAT lexer_char_letter        ; 113 q 
+    DAT lexer_char_letter        ; 114 r 
+    DAT lexer_char_letter        ; 115 s 
+    DAT lexer_char_letter        ; 116 t 
+    DAT lexer_char_letter        ; 117 u 
+    DAT lexer_char_letter        ; 118 v 
+    DAT lexer_char_letter        ; 119 w 
+    DAT lexer_char_letter        ; 120 x 
+    DAT lexer_char_letter        ; 121 y 
+    DAT lexer_char_letter        ; 122 z 
+    DAT lexer_char_lcurly        ; 123 { (left opening brace)
+    DAT lexer_char_vbar          ; 124 | (vertical bar)
+    DAT lexer_char_rcurly        ; 125 } (right closing brace)
+    DAT lexer_char_tilde         ; 126 ~ (tilde)
+    DAT recover                  ; 127 DEL (delete)
+
+;----------------------------------------------------------------
+
+
